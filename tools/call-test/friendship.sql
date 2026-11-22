@@ -1,0 +1,1 @@
+INSERT INTO friendships (requester_id, addressee_id, status, message) VALUES ('d0c162b2-7255-47d1-bda3-f0d3c984393a', 'cf49ee9e-1fb3-4b1f-a92c-0b1dde393a8b', 'accepted', 'e2e test') ON CONFLICT DO NOTHING;

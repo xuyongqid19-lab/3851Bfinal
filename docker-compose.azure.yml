@@ -1,0 +1,90 @@
+name: global-village-azure
+services:
+  community-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment: { POSTGRES_DB: global_village, POSTGRES_USER: global_village, POSTGRES_PASSWORD: "${DB_PASSWORD}" }
+    volumes:
+      - community-data:/var/lib/postgresql/data
+      - ./server/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+  auth-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment: { POSTGRES_DB: global_village_auth, POSTGRES_USER: global_village_auth, POSTGRES_PASSWORD: "${DB_PASSWORD}" }
+    volumes:
+      - auth-data:/var/lib/postgresql/data
+      - ./auth-server/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+  chat-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment: { POSTGRES_DB: global_village_chat, POSTGRES_USER: global_village_chat, POSTGRES_PASSWORD: "${DB_PASSWORD}" }
+    volumes:
+      - chat-data:/var/lib/postgresql/data
+      - ./chat-server/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+  auth-api:
+    build: ./auth-server
+    restart: unless-stopped
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgres://global_village_auth:${DB_PASSWORD}@auth-db:5432/global_village_auth
+      GOOGLE_WEB_CLIENT_ID: ${GOOGLE_WEB_CLIENT_ID}
+      JWT_SECRET: ${JWT_SECRET}
+      RESET_CODE_SECRET: ${RESET_CODE_SECRET}
+      SMTP_HOST: ${SMTP_HOST:-smtp.qq.com}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_SECURE: ${SMTP_SECURE:-true}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+    depends_on: [auth-db]
+  community-api:
+    build: ./server
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://global_village:${DB_PASSWORD}@community-db:5432/global_village
+      AUTH_API_ME_URL: http://auth-api:3001/auth/me
+    depends_on: [community-db, auth-api]
+  chat-api:
+    build: ./chat-server
+    restart: unless-stopped
+    environment:
+      PORT: 3004
+      DATABASE_URL: postgres://global_village_chat:${DB_PASSWORD}@chat-db:5432/global_village_chat
+      AUTH_API_ME_URL: http://auth-api:3001/auth/me
+    depends_on: [chat-db, auth-api]
+  family-api:
+    build: ./family-server
+    restart: unless-stopped
+    environment:
+      PORT: 3003
+      HOST: 0.0.0.0
+      AUTH_API_ME_URL: http://auth-api:3001/auth/me
+      ALLOWED_ORIGINS: https://${AZURE_HOSTNAME}
+      FAMILY_DB_PATH: /app/data/family.sqlite
+    volumes: [family-data:/app/data]
+    depends_on: [auth-api]
+  public-gateway:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    volumes:
+      - ./build/web:/usr/share/nginx/html:ro
+      - ./public-gateway/nginx.azure.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./public-gateway/proxy_params:/etc/nginx/proxy_params:ro
+    depends_on: [community-api, chat-api, family-api]
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment: { AZURE_HOSTNAME: "${AZURE_HOSTNAME}" }
+    volumes:
+      - ./public-gateway/Caddyfile.azure:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [public-gateway]
+volumes:
+  community-data:
+  auth-data:
+  chat-data:
+  family-data:
+  caddy-data:
+  caddy-config:

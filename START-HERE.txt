@@ -1,0 +1,76 @@
+Global Village 项目快速开始
+============================
+
+只需要安装一样东西:Docker Desktop(https://www.docker.com/products/docker-desktop/)
+
+步骤:
+1. 安装并启动 Docker Desktop(等它右下角变绿/显示 running)
+2. 双击本文件夹里的 RunProdWeb.cmd
+   - 首次运行会自动构建后端镜像,大约 2-5 分钟,窗口有进度
+   - 之后会自动打开浏览器访问 http://localhost:7357
+3. 用下面任一演示账号登录(密码都是 CallTest#2026):
+   - calltest.a@test.local   (演示群「Group Call Demo」的群主)
+   - calltest.b@test.local
+   - calltest.c@test.local
+   - calltest.d@test.local   (未加好友,用来测试非好友拦截)
+
+可以体验的功能:
+- 好友搜索 / 好友申请(Chats 页顶部搜索栏)
+- 1 对 1 文字、语音消息、语音/视频通话(聊天页右上角电话/摄像头按钮)
+- 群聊 + 群语音/视频通话(多人同时在线,全连接 mesh)
+- 群主/管理员:点群聊头像打开成员面板,可任命管理员、禁言、移除成员
+  (先用 A 登录,把 B 升为 Admin,再用 B 禁言/移除 C 试试)
+- 删除好友:进入好友聊天页,点顶部头像打开资料页,底部红色
+  "Remove Friend" 按钮即可删除(有确认弹窗)
+- AI 智能助手:Chats 消息列表顶部的 "AI Assistant" 卡片,点进去即可提问,
+  回复带打字机效果,历史记录保存在数据库,支持一键清空
+  (需先按下面「启用 AI 对话」配置一次,不配置则显示黄色提示)
+
+测试通话需要两个浏览器窗口(比如 Chrome + Edge,或普通窗口 + 无痕窗口),
+分别登录两个账号。注意:同一账号开多个标签页会互相挤下线。
+
+=== 启用 AI 对话(可选,免费,推荐) ===
+
+AI 助手默认未配置(聊天页顶部会显示黄色提示)。启用步骤:
+1. 打开 https://open.bigmodel.cn 用手机号注册,在控制台「API Keys」
+   页面创建一个 Key(默认的 glm-4-flash 模型调用免费)
+2. 在本文件夹(和 RunProdWeb.cmd 同级)新建 .env 文件,写入一行:
+   AI_API_KEY=你复制的Key
+   (可选:用 AI_MODEL 换模型,用 AI_API_BASE_URL 换其他
+   OpenAI 兼容服务商,如 DeepSeek)
+3. 关闭旧的命令行窗口,重新双击 RunProdWeb.cmd(或执行
+   docker compose -f docker-compose.chat.yml up -d)
+4. 刷新网页,点开 AI Assistant 卡片即可对话
+
+=== 手机 APP(Android) ===
+
+dist/ 目录里是已构建好的 APK:
+- GlobalVillage-app-arm64.apk     (33MB,近年主流手机,推荐)
+- GlobalVillage-app-universal.apk (92MB,任何 Android 手机)
+- GlobalVillage-app-arm32.apk     (25MB,老旧手机)
+
+手机上运行的步骤:
+1. 一台电脑先双击 RunProdWeb.cmd 把后端跑起来(手机和电脑连同一个 WiFi)
+2. 把 APK 发到手机安装(允许"未知来源"安装)
+3. 打开 APP,登录页底部点「Server: ...」,填那台电脑的 IP(电脑上运行
+   ipconfig 看 IPv4 地址,例如 192.168.1.50),保存
+4. 登录测试账号即可,功能和网页版完全一样(含语音/视频通话和群管理)
+
+手机连不上时:
+- 确认电脑的 RunProdWeb.cmd 窗口还在运行
+- 确认 APP 里 Server 填的是电脑的真实局域网 IP(ipconfig 看 192.168.x.x 那个;
+  不要填 172.x / 169.254.x / 26.x 等虚拟网卡地址)
+- 电脑防火墙放行:双击项目里的 AllowPhoneAccess.cmd(管理员运行,同意 UAC 即可)
+- 验证:手机浏览器打开 http://<电脑IP>:3002/health,看到 {"ok":true...} 就说明通了
+- APP 里 Google 登录需要在 Google Cloud 登记签名 SHA-1(见 README.md 手机APP一节,
+  SHA-1 已写在那里可直接复制),邮箱密码登录不受影响
+
+停止服务:双击 StopPublicDemo.cmd,或运行 docker rm -f global-village-web
+再对四个 compose 文件分别 docker compose -f <文件> stop。
+
+常见问题:
+- 打不开页面:确认 Docker Desktop 在运行,等 RunProdWeb.cmd 窗口执行完
+- 端口被占用:确保 3000/3002/3003/3004/7357 没被其他程序占用
+- 想改代码:需要 Flutter SDK,看 README.md 的「启动方式二」和 RunProdWeb.cmd 里的构建命令
+
+详细文档都在 README.md(本文件为 UTF-8 编码,若记事本乱码请用 VS Code 或另存为 ANSI)。
